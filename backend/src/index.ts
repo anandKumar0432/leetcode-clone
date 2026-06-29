@@ -1,27 +1,59 @@
 
 import express from "express"
 import { createClient } from "redis";
+import { prisma } from "./db";
 
 let client = createClient();
 client.connect();
 
 const app = express();
-
 app.use(express.json());
 
-
-
-app.post("/submission", (req, res)=>{
-    const userId = req.body.userId;
-    const quesId = req.body.userId;
+app.post("/submission", async (req, res)=>{
     const code = req.body.code;
-    const lang = req.body.lang;
+    const language = req.body.language;
 
-    client.lPush("problems", JSON.stringify({userId, quesId, code, lang}));
+    try{
+        const submission = await prisma.submission.create({
+            data: {
+                code,
+                language,
+                status: "Processing"
+            }
+        })
 
-    res.json({
-        message: "processing",
-    })
+        const submissionId = submission.id
+        client.lPush("problems", JSON.stringify({submissionId, code, language}));
+
+        res.json({
+            submissionId: submission.id,
+            status: submission.status
+        })
+    }catch(e){
+        res.json({
+            msg: "Something went wrong!!!"
+        })
+    }
+})
+
+app.get("/submission/:submissionId", async (req, res) =>{
+    const submissionId = req.params.submissionId;
+
+    try{
+        const submission = await prisma.submission.findFirst({
+            where: {
+                id : submissionId
+            }
+        })
+
+        res.json({
+            submission
+        })
+    } catch (e){
+        res.json({
+            msg: "something went wrong!!!"
+        })
+    }
 })
 
 
