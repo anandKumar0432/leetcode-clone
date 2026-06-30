@@ -2,11 +2,13 @@
 import express from "express"
 import { createClient } from "redis";
 import { prisma } from "./db";
+import cors from "cors"
 
 let client = createClient();
 client.connect();
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
 app.post("/submission", async (req, res)=>{
